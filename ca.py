@@ -19,7 +19,7 @@ class CA:
         self.y_ca = pow(self.a_ca, self.__x_ca, self.q_ca)
 
     def generate_x509_certificate(self, issuer_name: str, issuer_id: int, subject_name: str,
-                                  issuer_public_parameters: tuple,
+                                  issuer_public_parameters: tuple, issuer_public_key: int,
                                   not_valid_before: datetime, not_valid_after: datetime, hash_type=SHA):
         # Sanity Checks
         if not isinstance(subject_name, str):
@@ -29,6 +29,8 @@ class CA:
         if not isinstance(issuer_id, int):
             raise TypeError("Issuer id should be a int instance")
         if not isinstance(issuer_public_parameters, tuple):
+            raise TypeError("Issuer public parameters should be an tuple instance")
+        if not isinstance(issuer_public_key, int):
             raise TypeError("Issuer public key should be an integer instance")
         if not isinstance(not_valid_before, datetime):
             raise TypeError("Not valid before should be an datetime instance")
@@ -41,6 +43,7 @@ class CA:
         cert['issuer_id'] = issuer_id
         cert['subject_name'] = subject_name
         cert['issuer_public_parameters'] = issuer_public_parameters
+        cert['issuer_public_key'] = issuer_public_key
         cert['serial_number'] = CA.__x509_SN
         cert['not_valid_before'] = not_valid_before
         cert['not_valid_after'] = not_valid_after
