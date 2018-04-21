@@ -12,8 +12,8 @@ def generate_safe_prime(nbits):
     return q
 
 
-def generate_sha_hash(M):
-    m = SHA.new()
+def generate_hash(M, hash_type=SHA):
+    m = hash_type.new()
     # Hash library works only on bytes, so we have to convert the integer into string of bytes.
     m.update(str(M).encode("ASCII"))
     return int(m.hexdigest(), 16)

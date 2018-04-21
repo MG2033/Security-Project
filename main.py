@@ -1,7 +1,8 @@
 from Crypto.Hash import SHA
-from utils import generate_safe_prime, generate_sha_hash
+from utils import generate_safe_prime, generate_hash
 from elgamal import ElGamalDS
 import random
+from ca import CA
 
 # Global Constants
 NBYTES = SHA.digest_size + 1
@@ -29,14 +30,14 @@ id_b = random.randint(1, MAX_ID)
 assert id_a != id_b
 
 # CA Creation
+ca = CA(NBYTES)
 
 # Message Hashing
-m = generate_sha_hash(M)
+m = generate_hash(M, SHA)
 
 ##############################################33
-elgamal = ElGamalDS()
-S1, S2 = elgamal.generate(x_a, a, q, m)
-if elgamal.verify(y_a, a, m, q, S1, S2):
+S1, S2 = ElGamalDS.sign(x_a, a, q, m)
+if ElGamalDS.verify(y_a, a, m, q, S1, S2):
     print("Signature matches!")
 else:
     print("Signature doesn't match!")

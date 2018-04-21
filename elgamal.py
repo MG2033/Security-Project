@@ -4,7 +4,8 @@ import gmpy
 
 
 class ElGamalDS:
-    def generate(self, x, a, q, m):
+    @staticmethod
+    def sign(x, a, q, m):
         """Used to generate a digital signature for a message m using ElGamal Digital Signature Algorithm"""
         # Step 1: Make sure that hash of M satisfies the following condition
         assert 0 <= m <= (q - 1)
@@ -25,7 +26,8 @@ class ElGamalDS:
 
         return S1, S2
 
-    def verify(self, y, a, m, q, S1, S2):
+    @staticmethod
+    def verify(y, a, m, q, S1, S2):
         """Used to verify a digital signature for a message m using ElGamal Digital Signature Algorithm"""
         V1 = pow(a, m, q)
         V2 = (pow(y, S1, q) * pow(S1, S2, q)) % q
