@@ -3,8 +3,10 @@ import random
 from datetime import datetime, timedelta
 from Crypto.Hash import SHA
 from utils import generate_hash
-import pickle
 from elgamal import ElGamalDS
+from pymongo import MongoClient
+from utils import verify_certificate
+import collections
 
 
 class CA:
@@ -12,33 +14,18 @@ class CA:
     __VERSION__ = 1
     __BYTES_TO_BITS = 8
 
-    def __init__(self, NBYTES):
+    def __init__(self, NBYTES, database_host='localhost', database_port=27017):
         self.q_ca = generate_safe_prime(NBYTES * CA.__BYTES_TO_BITS)
         self.a_ca = random.randint(2, self.q_ca - 1)
         self.__x_ca = random.randint(2, self.q_ca - 1)
         self.y_ca = pow(self.a_ca, self.__x_ca, self.q_ca)
+        self.certificates = self.__initalize_database(database_host, database_port)
 
     def generate_x509_certificate(self, issuer_name: str, issuer_id: int, subject_name: str,
-                                  issuer_public_parameters: tuple, issuer_public_key: int,
+                                  issuer_public_parameters: list, issuer_public_key: int,
                                   not_valid_before: datetime, not_valid_after: datetime, hash_type=SHA):
-        # Sanity Checks
-        if not isinstance(subject_name, str):
-            raise TypeError("Subject name should be a string instance")
-        if not isinstance(issuer_name, str):
-            raise TypeError("Issuer name should be a string instance")
-        if not isinstance(issuer_id, int):
-            raise TypeError("Issuer id should be a int instance")
-        if not isinstance(issuer_public_parameters, tuple):
-            raise TypeError("Issuer public parameters should be an tuple instance")
-        if not isinstance(issuer_public_key, int):
-            raise TypeError("Issuer public key should be an integer instance")
-        if not isinstance(not_valid_before, datetime):
-            raise TypeError("Not valid before should be an datetime instance")
-        if not isinstance(not_valid_after, datetime):
-            raise TypeError("Not valid after should be an datetime instance")
-
         # Generating the certificate
-        cert = dict()
+        cert = collections.OrderedDict()
         cert['issuer_name'] = issuer_name
         cert['issuer_id'] = issuer_id
         cert['subject_name'] = subject_name
@@ -49,15 +36,59 @@ class CA:
         cert['not_valid_after'] = not_valid_after
         CA.__x509_SN += 1
 
+        returned_cert = cert.copy()
+
         # Signing the certificate
-        m = generate_hash(pickle.dumps(cert), hash_type)
+        m = generate_hash(str(cert), hash_type)
         signature = ElGamalDS.sign(self.__x_ca, self.a_ca, self.q_ca, m)
+        cert['signature'] = signature.copy()
 
-        # TODO insert the certificate into the database or file
-        return cert, signature
+        # Conversion from MPZ to integer
+        for i in range(len(signature)):
+            signature[i] = int(signature[i])
 
-    def get_x509_certificate(self, issuer_id):
-        cert = dict()
-        signature = None
-        # TODO get the certificate from the database
-        return cert, signature
+        # Conversion into strings to be stored in the database properly
+        cert['issuer_public_key'] = str(issuer_public_key)
+
+        for i in range(len(cert['signature'])):
+            cert['signature'][i] = str(cert['signature'][i])
+
+        # Insert into the database or update if it exists
+        cur = self.certificates.find({'issuer_id': issuer_id})
+        if cur.count() > 0:
+            self.certificates.update({'issuer_id': issuer_id}, cert)
+        else:
+            self.certificates.insert_one(cert)
+        return returned_cert, signature
+
+    def get_x509_certificate(self, issuer_id: int):
+        cert, signature = dict(), None
+        cur = self.certificates.find({'issuer_id': issuer_id})
+        returned_cert = collections.OrderedDict()
+        for cert in cur:
+            # Reverting back what is done before saving to the database
+            returned_cert['issuer_name'] = cert['issuer_name']
+            returned_cert['issuer_id'] = int(cert['issuer_id'])
+            returned_cert['subject_name'] = cert['subject_name']
+            returned_cert['issuer_public_parameters'] = cert['issuer_public_parameters']
+            returned_cert['issuer_public_key'] = int(cert['issuer_public_key'])
+            returned_cert['serial_number'] = int(cert['serial_number'])
+            returned_cert['not_valid_before'] = cert['not_valid_before']
+            returned_cert['not_valid_after'] = cert['not_valid_after']
+
+            signature = []
+            for i in range(len(cert['signature'])):
+                signature.append(int(cert['signature'][i]))
+            break
+        return returned_cert, signature
+
+    def __initalize_database(self, database_host='localhost', database_port=27017):
+        client = MongoClient(database_host, database_port)
+        db = client.certificates_database
+        return db.certificates
+
+# Test Drive
+# ca = CA(21)
+# cert2, signature2 = ca.generate_x509_certificate("hey", 1, "hey", [3, 4], 5, datetime(1990, 1, 1), datetime(1990, 1, 2))
+# cert, signature = ca.get_x509_certificate(1)
+# print(verify_certificate(cert, signature, ca.y_ca, ca.a_ca, ca.q_ca))

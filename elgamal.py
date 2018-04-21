@@ -24,11 +24,12 @@ class ElGamalDS:
         # Step 5: Calculate S2
         S2 = (Kinv * (m - x * S1)) % (q - 1)
 
-        return S1, S2
+        return [S1, S2]
 
     @staticmethod
-    def verify(y, a, m, q, S1, S2):
+    def verify(y, a, m, q, signature):
         """Used to verify a digital signature for a message m using ElGamal Digital Signature Algorithm"""
+        S1, S2 = signature[0], signature[1]
         V1 = pow(a, m, q)
         V2 = (pow(y, S1, q) * pow(S1, S2, q)) % q
         return V1 == V2

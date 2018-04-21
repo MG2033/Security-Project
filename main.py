@@ -37,8 +37,8 @@ for i in range(MAX_ID):
 M = 23
 m = generate_hash(M, SHA)
 
-S1, S2 = ElGamalDS.sign(x_a, a, q, m)
-if ElGamalDS.verify(y_a, a, m, q, S1, S2):
+signature = ElGamalDS.sign(x_a, a, q, m)
+if ElGamalDS.verify(y_a, a, m, q, signature):
     print("Signature matches!")
 else:
     print("Signature doesn't match!")
