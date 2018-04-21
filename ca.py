@@ -51,6 +51,10 @@ class CA:
         signature = ElGamalDS.sign(self.__x_ca, self.a_ca, self.q_ca, m)
         return cert, signature
 
+    def get_certificate(self, issuer_id):
+        cert = dict()
+        return cert
+
     def verify_certificate(self, cert: dict, signature: tuple, hash_type=SHA):
         """Verifying the signature"""
         m = generate_hash(pickle.dumps(cert), hash_type)
