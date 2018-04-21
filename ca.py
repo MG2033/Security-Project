@@ -7,7 +7,8 @@ from elgamal import ElGamalDS
 from pymongo import MongoClient
 from utils import verify_certificate
 import collections
-
+import dateutil
+from dateutil import parser
 
 class CA:
     __x509_SN = 0
@@ -23,7 +24,7 @@ class CA:
 
     def generate_x509_certificate(self, issuer_name: str, issuer_id: int, subject_name: str,
                                   issuer_public_parameters: list, issuer_public_key: int,
-                                  not_valid_before: datetime, not_valid_after: datetime, hash_type=SHA):
+                                  not_valid_before: dateutil, not_valid_after: dateutil, hash_type=SHA):
         # Generating the certificate
         cert = collections.OrderedDict()
         cert['issuer_name'] = issuer_name
@@ -53,12 +54,20 @@ class CA:
         for i in range(len(cert['signature'])):
             cert['signature'][i] = str(cert['signature'][i])
 
+        cert['issuer_public_parameters'] = returned_cert['issuer_public_parameters'].copy()
+        for i in range(len(cert['issuer_public_parameters'])):
+            cert['issuer_public_parameters'][i] = str(cert['issuer_public_parameters'][i])
+
+        cert['not_valid_before'] = str(cert['not_valid_before'])
+        cert['not_valid_after'] = str(cert['not_valid_after'])
+
         # Insert into the database or update if it exists
         cur = self.certificates.find({'issuer_id': issuer_id})
         if cur.count() > 0:
             self.certificates.update({'issuer_id': issuer_id}, cert)
         else:
             self.certificates.insert_one(cert)
+
         return returned_cert, signature
 
     def get_x509_certificate(self, issuer_id: int):
@@ -73,12 +82,17 @@ class CA:
             returned_cert['issuer_public_parameters'] = cert['issuer_public_parameters']
             returned_cert['issuer_public_key'] = int(cert['issuer_public_key'])
             returned_cert['serial_number'] = int(cert['serial_number'])
-            returned_cert['not_valid_before'] = cert['not_valid_before']
-            returned_cert['not_valid_after'] = cert['not_valid_after']
+            returned_cert['not_valid_before'] = parser.parse(cert['not_valid_before'])
+            returned_cert['not_valid_after'] = parser.parse(cert['not_valid_after'])
 
             signature = []
             for i in range(len(cert['signature'])):
                 signature.append(int(cert['signature'][i]))
+
+            for i in range(len(returned_cert['issuer_public_parameters'])):
+                returned_cert['issuer_public_parameters'][i] = int(returned_cert['issuer_public_parameters'][i])
+
+
             break
         return returned_cert, signature
 
@@ -87,8 +101,12 @@ class CA:
         db = client.certificates_database
         return db.certificates
 
+
 # Test Drive
 # ca = CA(21)
-# cert2, signature2 = ca.generate_x509_certificate("hey", 1, "hey", [3, 4], 5, datetime(1990, 1, 1), datetime(1990, 1, 2))
+# cert2, signature2 = ca.generate_x509_certificate("Bob", 1, "Bob_Sub", [5, 7], 10, datetime.now(), datetime.now() + timedelta(365))
 # cert, signature = ca.get_x509_certificate(1)
-# print(verify_certificate(cert, signature, ca.y_ca, ca.a_ca, ca.q_ca))
+# print(cert == cert2, verify_certificate(cert, signature, ca.y_ca, ca.a_ca, ca.q_ca))
+# for k in cert.keys():
+#     if cert[k] != cert2[k]:
+#         print(k, cert[k], cert2[k])

@@ -10,7 +10,7 @@ def generate_safe_prime(nbits):
     q = number.getRandomNBitInteger(nbits)
     while not gmpy.is_prime(q):
         q = gmpy.next_prime(q)
-    return q
+    return int(q)
 
 
 def generate_hash(M, hash_type=SHA):

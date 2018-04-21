@@ -24,7 +24,7 @@ class ElGamalDS:
         # Step 5: Calculate S2
         S2 = (Kinv * (m - x * S1)) % (q - 1)
 
-        return [S1, S2]
+        return [int(S1), int(S2)]
 
     @staticmethod
     def verify(y, a, m, q, signature):
