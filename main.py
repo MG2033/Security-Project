@@ -7,10 +7,10 @@ from ca import CA
 # Global Constants
 NBYTES = SHA.digest_size + 1
 BYTES_TO_BITS = 8
-MAX_ID = 10
+MAX_ID = 30
 
-# Message to be sent by Alice
-M = 23
+# CA Creation
+ca = CA(NBYTES)
 
 # Alice and Bob Parameters
 q = generate_safe_prime(NBYTES * BYTES_TO_BITS)
@@ -26,16 +26,17 @@ x_b = random.randint(2, q - 1)
 y_b = pow(a, x_b, q)
 id_b = random.randint(1, MAX_ID)
 
-# ID-A should be different than ID-B
-assert id_a != id_b
+# Some other keys
+for i in range(MAX_ID):
+    if i != id_a and i != id_b:
+        x = random.randint(2, q - 1)
+        y = pow(a, x, q)
 
-# CA Creation
-ca = CA(NBYTES)
-
-# Message Hashing
+##############################################
+# Message to be sent by Alice
+M = 23
 m = generate_hash(M, SHA)
 
-##############################################33
 S1, S2 = ElGamalDS.sign(x_a, a, q, m)
 if ElGamalDS.verify(y_a, a, m, q, S1, S2):
     print("Signature matches!")
