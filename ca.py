@@ -49,10 +49,13 @@ class CA:
         # Signing the certificate
         m = generate_hash(pickle.dumps(cert), hash_type)
         signature = ElGamalDS.sign(self.__x_ca, self.a_ca, self.q_ca, m)
+
+        # TODO insert the certificate into the database or file
         return cert, signature
 
     def get_certificate(self, issuer_id):
         cert = dict()
+        # TODO get the certificate from the database
         return cert
 
     def verify_certificate(self, cert: dict, signature: tuple, hash_type=SHA):
