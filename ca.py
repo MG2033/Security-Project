@@ -56,7 +56,7 @@ class CA:
         # TODO insert the certificate into the database or file
         return cert, signature
 
-    def get_certificate(self, issuer_id):
+    def get_x509_certificate(self, issuer_id):
         cert = dict()
         signature = None
         # TODO get the certificate from the database
