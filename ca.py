@@ -58,8 +58,9 @@ class CA:
 
     def get_certificate(self, issuer_id):
         cert = dict()
+        signature = None
         # TODO get the certificate from the database
-        return cert
+        return cert, signature
 
     def verify_certificate(self, cert: dict, signature: tuple, hash_type=SHA):
         """Verifying the signature"""
