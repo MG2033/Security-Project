@@ -30,7 +30,9 @@ a = random.randint(2, q - 1)
 x_a = random.randint(2, q - 1)
 y_a = pow(a, x_a, q)
 id_a = random.randint(1, MAX_ID)
-ca.generate_x509_certificate("Alice", id_a, "Alice_Sub", [a, q], y_a, datetime.now(), datetime.now() + timedelta(365))
+print("Alice Certificate...")
+print(ca.generate_x509_certificate("Alice", id_a, "Alice_Sub", [a, q], y_a, datetime.now(),
+                                   datetime.now() + timedelta(365)), "\n")
 
 # Alice RSA Keys
 d_a, e_a, n = rsa.generate_key_pair()
@@ -41,6 +43,8 @@ y_b = pow(a, x_b, q)
 id_b = random.randint(1, MAX_ID)
 z, r = ca.generate_x509_certificate("Bob", id_b, "Bob_Sub", [a, q], y_b, datetime.now(),
                                     datetime.now() + timedelta(365))
+print("Bob Certificate...")
+print(z, r, "\n")
 
 # Bob RSA Keys
 d_b, e_b, n = rsa.generate_key_pair()
