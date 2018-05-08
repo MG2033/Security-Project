@@ -65,8 +65,8 @@ for i in range(MAX_ID):
 class Alice:
     def __init__(self):
         print("Alice Part!")
-        M = "hey i'd like to play"
-        print("Original Message at Alice: " + M)
+        M = "Hey, I'd like to play!"
+        print("Original Message at Alice: ", M)
 
         m = generate_hash(M, SHA)
 
@@ -128,7 +128,7 @@ class Bob:
         sig0_r = int(msg_r[1: q_len_r + 1])
         sig1_r = int(msg_r[q_len_r + 1: 2 * q_len_r + 1])
         M_r = msg_r[2 * q_len_r + 1:]
-        print("Original Message at Bob: " + M_r)
+        print("Original Message at Bob: ", M_r)
 
         # Get Alice's certificate
         alice_cert, ca_alice_signature = ca.get_x509_certificate(id_a)
