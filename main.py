@@ -30,31 +30,34 @@ a = random.randint(2, q - 1)
 x_a = random.randint(2, q - 1)
 y_a = pow(a, x_a, q)
 id_a = random.randint(1, MAX_ID)
+
+d_a, e_a, n = rsa.generate_key_pair()
+
 print("Alice Certificate...")
-print(ca.generate_x509_certificate("Alice", id_a, "Alice_Sub", [a, q], y_a, datetime.now(),
+print(ca.generate_x509_certificate("Alice", id_a, "Alice_Sub", [a, q, n], [y_a, e_a], datetime.now(),
                                    datetime.now() + timedelta(365)), "\n")
 
 # Alice RSA Keys
-d_a, e_a, n = rsa.generate_key_pair()
 ########################################################################################################################
 # Bob Keys
 x_b = random.randint(2, q - 1)
 y_b = pow(a, x_b, q)
 id_b = random.randint(1, MAX_ID)
-z, r = ca.generate_x509_certificate("Bob", id_b, "Bob_Sub", [a, q], y_b, datetime.now(),
+
+d_b, e_b, n = rsa.generate_key_pair()
+
+z, r = ca.generate_x509_certificate("Bob", id_b, "Bob_Sub", [a, q, n], [y_b, e_b], datetime.now(),
                                     datetime.now() + timedelta(365))
 print("Bob Certificate...")
 print(z, r, "\n")
-
 # Bob RSA Keys
-d_b, e_b, n = rsa.generate_key_pair()
 ########################################################################################################################
 # Some other keys
 for i in range(MAX_ID):
     if i != id_a and i != id_b:
         x = random.randint(2, q - 1)
         y = pow(a, x, q)
-        ca.generate_x509_certificate("Random" + str(i), i, "Random_Sub" + str(i), [a, q], y, datetime.now(),
+        ca.generate_x509_certificate("Random" + str(i), i, "Random_Sub" + str(i), [a, q], [y], datetime.now(),
                                      datetime.now() + timedelta(365))
 
 
@@ -83,10 +86,11 @@ class Alice:
             raise ValueError("Bob Certificate is incorrect!")
 
         # Get Bob's public key
-        bob_public_key = bob_cert['issuer_public_key']
+        bob_public_key_elgamal, bob_public_key_rsa = bob_cert['issuer_public_key']
 
         # Assert that it's the true public key (Used for debugging)
-        assert bob_public_key == y_b
+        assert bob_public_key_elgamal == y_b
+        assert bob_public_key_rsa == e_b
 
         # First byte specifies the length of each of the signature parts, then each of the signature parts are added, then the message.
         # Concatenate to send
@@ -106,7 +110,7 @@ class Alice:
         total_message = int.from_bytes(msg.encode('UTF-8'), byteorder='big')
         print("Message after conversion to int: " + str(total_message))
 
-        self.encrypted = rsa.encrypt(e_b, int(total_message))
+        self.encrypted = rsa.encrypt(bob_public_key_rsa, int(total_message))
         print("Encrypted Message to be sent: " + str(self.encrypted) + "\n")
 
 
@@ -116,6 +120,24 @@ class Alice:
 class Bob:
     def __init__(self, encrypted):
         print("Bob Part!")
+
+        # Get Alice's certificate
+        alice_cert, ca_alice_signature = ca.get_x509_certificate(id_a)
+
+        # Verify the certificate from CA
+        if verify_certificate(alice_cert, ca_alice_signature, ca.y_ca, ca.a_ca, ca.q_ca):
+            print("Alice Certificate verified!")
+        else:
+            raise ValueError("Alice Certificate is incorrect!")
+
+        # Get Alice's public key
+        alice_public_key_elgamal, alice_public_key_rsa = alice_cert['issuer_public_key']
+        alice_a, alice_q, alice_n = alice_cert['issuer_public_parameters']
+
+        # Assert that it's the true public key (Used for debugging)
+        assert alice_public_key_elgamal == y_a
+        assert alice_public_key_rsa == e_a
+
         print("Encrypted Message that is received: " + str(encrypted))
 
         decrypted = rsa.decrypt(encrypted, d_b)
@@ -130,27 +152,11 @@ class Bob:
         M_r = msg_r[2 * q_len_r + 1:]
         print("Original Message at Bob: ", M_r)
 
-        # Get Alice's certificate
-        alice_cert, ca_alice_signature = ca.get_x509_certificate(id_a)
-
-        # Verify the certificate from CA
-        if verify_certificate(alice_cert, ca_alice_signature, ca.y_ca, ca.a_ca, ca.q_ca):
-            print("Alice Certificate verified!")
-        else:
-            raise ValueError("Alice Certificate is incorrect!")
-
-        # Get Alice's public key
-        alice_public_key = alice_cert['issuer_public_key']
-        alice_a, alice_q = alice_cert['issuer_public_parameters']
-
-        # Assert that it's the true public key (Used for debugging)
-        assert alice_public_key == y_a
-
         # Calculate the hash for the received message
         m_r = generate_hash(M_r, SHA)
 
         # Verify the signature of the message
-        if ElGamalDS.verify(alice_public_key, alice_a, m_r, alice_q, [sig0_r, sig1_r]):
+        if ElGamalDS.verify(alice_public_key_elgamal, alice_a, m_r, alice_q, [sig0_r, sig1_r]):
             print("Message signature verified!")
         else:
             print("Message signature failed!")

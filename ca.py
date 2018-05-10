@@ -23,7 +23,7 @@ class CA:
         self.certificates = self.__initalize_database(database_host, database_port)
 
     def generate_x509_certificate(self, issuer_name: str, issuer_id: int, subject_name: str,
-                                  issuer_public_parameters: list, issuer_public_key: int,
+                                  issuer_public_parameters: list, issuer_public_key: list,
                                   not_valid_before: dateutil, not_valid_after: dateutil, hash_type=SHA):
         # Generating the certificate
         cert = collections.OrderedDict()
@@ -49,7 +49,8 @@ class CA:
             signature[i] = int(signature[i])
 
         # Conversion into strings to be stored in the database properly
-        cert['issuer_public_key'] = str(issuer_public_key)
+        for i in range(len(cert['issuer_public_key'])):
+            cert['issuer_public_key'][i] = str(cert['issuer_public_key'][i])
 
         for i in range(len(cert['signature'])):
             cert['signature'][i] = str(cert['signature'][i])
@@ -80,7 +81,7 @@ class CA:
             returned_cert['issuer_id'] = int(cert['issuer_id'])
             returned_cert['subject_name'] = cert['subject_name']
             returned_cert['issuer_public_parameters'] = cert['issuer_public_parameters']
-            returned_cert['issuer_public_key'] = int(cert['issuer_public_key'])
+            returned_cert['issuer_public_key'] = cert['issuer_public_key']
             returned_cert['serial_number'] = int(cert['serial_number'])
             returned_cert['not_valid_before'] = parser.parse(cert['not_valid_before'])
             returned_cert['not_valid_after'] = parser.parse(cert['not_valid_after'])
@@ -88,6 +89,9 @@ class CA:
             signature = []
             for i in range(len(cert['signature'])):
                 signature.append(int(cert['signature'][i]))
+
+            for i in range(len(returned_cert['issuer_public_key'])):
+                returned_cert['issuer_public_key'][i] = int(returned_cert['issuer_public_key'][i])
 
             for i in range(len(returned_cert['issuer_public_parameters'])):
                 returned_cert['issuer_public_parameters'][i] = int(returned_cert['issuer_public_parameters'][i])
